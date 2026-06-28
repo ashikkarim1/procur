@@ -1,0 +1,311 @@
+// Procur — Phase 1 data layer.
+// The Software Knowledge Graph is the moat: long-tail attributes live in jsonb,
+// every sourced fact carries Provenance[] (also jsonb). pgvector is reserved for Phase 2.
+// Types mirror contracts/types.ts — see src/contracts/types.ts (imported, not redefined).
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ──────────────────────────── Org, members, settings ────────────────────────
+model Organisation {
+  id            String           @id
+  name          String
+  region        String // Region
+  plan          Json
+  security      Json
+  privacy       Json
+  notifications Json?
+  profile       BusinessProfile?
+  members       Member[]
+
+  savedSearches       SavedSearch[]
+  watchItems          WatchItem[]
+  briefs              Brief[]
+  auditEvents         AuditEvent[]
+  invoices            Invoice[]
+  apiKeys             ApiKey[]
+  connectors          Connector[]
+  negotiations        Negotiation[]
+  implementationPlans ImplementationPlan[]
+}
+
+model BusinessProfile {
+  id                    String       @id
+  orgId                 String       @unique
+  org                   Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgName               String
+  country               String
+  city                  String?
+  industry              String
+  employees             Int
+  revenue               Json? // Money
+  currentStack          Json // { erp?, crm?, accounting?, cloud?, productivity?, other?[] }
+  compliance            String[]
+  dataResidencyRequired String[]
+  budget                Json? // Money
+  growthPlans           String?
+}
+
+model Member {
+  id           String       @id
+  orgId        String
+  org          Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  role         String // Role
+  status       String // MemberStatus
+  lastActiveAt DateTime?
+}
+
+// ──────────────────────────── Knowledge graph ───────────────────────────────
+model Vendor {
+  id                 String    @id
+  name               String
+  headquarters       Json
+  ownership          String
+  ticker             String?
+  foundedYear        Int
+  employees          Json? // Sourced<number>
+  revenue            Json? // Sourced<Money>
+  financialStability Json? // Sourced<'A'|'B'|'C'|'D'>
+  acquisitionHistory Json?
+  products           Product[]
+}
+
+model Product {
+  id                    String                      @id
+  vendorId              String
+  vendor                Vendor                      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name                  String
+  slug                  String                      @unique
+  category              String
+  shortDescription      String
+  // structured long-tail (jsonb)
+  editions              Json
+  modules               String[]
+  deployment            String[]
+  apps                  Json
+  browsers              String[]
+  languages             String[]
+  regionsServed         String[]
+  releaseCadencePerYear Int?
+  sla                   Json? // Sourced<number>
+  technical             Json
+  pricing               Json
+  aiScore               Json
+  integrations          Json
+  reviewSummary         Json?
+  ratingAvg             Float?
+  ratingCount           Int?
+  // pgvector column (Phase 2 retrieval) — managed via raw SQL; declared so db push preserves it
+  embedding             Unsupported("vector(256)")?
+
+  migrationsTo MigrationFact[] @relation("MigrationTo")
+}
+
+// Raw, sourced inputs the deterministic migration calculator consumes (system pair).
+// difficulty / score / estWeeks are NOT stored — they are computed from these inputs.
+model MigrationFact {
+  id              String   @id @default(cuid())
+  fromSystem      String
+  toProductId     String
+  toProduct       Product  @relation("MigrationTo", fields: [toProductId], references: [id], onDelete: Cascade)
+  recordsAffected Int?
+  impacted        Json // { integrations, workflows, dashboards, customCode }
+  retrainingStaff Int?
+  consultingHours Int?
+  checklist       String[]
+
+  @@unique([fromSystem, toProductId])
+}
+
+// ──────────────────────── Buyer workspace surfaces ──────────────────────────
+model SavedSearch {
+  id              String       @id @default(cuid())
+  orgId           String
+  org             Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdBy       String
+  title           String
+  query           String
+  filters         Json
+  lastRunAt       DateTime?
+  lastResultCount Int?
+  delta           Json?
+  alertsEnabled   Boolean      @default(false)
+}
+
+model WatchItem {
+  id        String       @id @default(cuid())
+  orgId     String
+  org       Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  productId String
+  addedAt   DateTime     @default(now())
+  alerts    String[]
+  signal    Json?
+}
+
+// Persisted ProcurementBrief (rules-ranker output in Phase 1, LLM in Phase 2).
+model Brief {
+  id        String       @id
+  orgId     String
+  org       Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  profileId String
+  query     String
+  status    String
+  createdAt DateTime     @default(now())
+  payload   Json // the full ProcurementBrief, computed at request time
+}
+
+// Tamper-evident hash chain (SECURITY.md §6).
+model AuditEvent {
+  id       String       @id @default(cuid())
+  orgId    String
+  org      Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  actor    String
+  action   String
+  target   String?
+  ip       String?
+  at       DateTime     @default(now())
+  hash     String
+  prevHash String
+}
+
+// ──────────────────── Billing (stubbed, seeded) ─────────────────────────────
+model Invoice {
+  id       String       @id @default(cuid())
+  orgId    String
+  org      Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  period   String
+  amount   Json
+  status   String
+  pdfUrl   String
+  issuedAt DateTime     @default(now())
+}
+
+model ApiKey {
+  id           String       @id @default(cuid())
+  orgId        String
+  org          Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name         String
+  env          String
+  maskedSecret String
+  scopes       String[]
+  lastUsedAt   DateTime?
+  createdAt    DateTime     @default(now())
+}
+
+model Connector {
+  id      String       @id @default(cuid())
+  orgId   String
+  org     Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  type    String
+  name    String
+  status  String
+  purpose String?
+}
+
+model Negotiation {
+  id           String       @id
+  orgId        String
+  org          Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  productId    String
+  briefId      String?
+  status       String
+  listPrice    Json
+  currentOffer Json
+  securedDelta Json
+  levers       Json
+  thread       Json
+  guardrails   Json
+}
+
+model ImplementationPlan {
+  id              String       @id
+  orgId           String
+  org             Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  productId       String
+  fromSystem      String
+  totalWeeks      Int
+  partner         Json?
+  milestonesDone  Int
+  milestonesTotal Int
+  phases          Json
+  risks           Json
+  kpis            Json
+  goLiveChecklist Json
+}
+
+model VendorAccount {
+  id         String              @id
+  name       String
+  productIds String[]
+  verified   Boolean             @default(false)
+  agreements ReferralAgreement[]
+  leads      Lead[]
+  payouts    Payout[]
+}
+
+model ReferralAgreement {
+  id                String        @id
+  vendorId          String
+  vendor            VendorAccount @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  productId         String?
+  feeType           String
+  feeValue          Float
+  recurring         Boolean
+  qualifiedLeadDef  String
+  cookieDays        Int?
+  territories       String[]
+  exclusions        String[]
+  minContractValue  Json?
+  paymentTiming     String
+  cancellationTerms String?
+  connector         String?
+  trackingLink      String?
+  status            String
+  policyReview      Json?
+  documentUrl       String?
+  signatures        Json?
+}
+
+model Lead {
+  id              String        @id @default(cuid())
+  vendorId        String
+  vendor          VendorAccount @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  productId       String
+  agreementId     String?
+  buyerOrgId      String?
+  status          String
+  qualifyingEvent String?
+  value           Json?
+  createdAt       DateTime      @default(now())
+}
+
+model Payout {
+  id          String        @id @default(cuid())
+  vendorId    String
+  vendor      VendorAccount @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  agreementId String
+  amount      Json
+  status      String
+  period      String
+  connector   String?
+}
+
+model MarketplacePartner {
+  id              String   @id
+  name            String
+  type            String
+  regions         String[]
+  specialisations String[]
+  verified        Boolean  @default(false)
+  rating          Float?
+}

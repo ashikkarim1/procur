@@ -1,26 +1,111 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================================
+   Procur design tokens — lifted from spec/DESIGN_SPEC.md §1.
+   Tailwind v4: tokens declared in @theme become utilities (bg-paper, text-ink…).
+   ============================================================================ */
+@theme {
+  /* Warm neutrals */
+  --color-paper: #f4f2ee;
+  --color-surface: #ffffff;
+  --color-surface-2: #fbfaf7;
+  --color-ink: #1c1a17;
+  --color-ink-soft: #43403a;
+  --color-ink-muted: #6b6760;
+  --color-ink-faint: #9c988f;
+  --color-ink-fainter: #b3aea3;
+  --color-line: #e4e0d7;
+  --color-line-soft: #eee9e0;
+  --color-line-soft2: #f1ede5;
+  --color-line-strong: #d4cfc4;
+
+  /* Command rail (dark) */
+  --color-rail-bg: #1a1815;
+  --color-rail-border: #2c2925;
+  --color-rail-active: #2f2a26;
+  --color-rail-hover: #252220;
+  --color-rail-text: #b8b3a8;
+  --color-rail-text-active: #f4f2ee;
+  --color-rail-label: #5e594f;
+  --color-rail-text-dim: #6f6a61;
+
+  /* Semantic */
+  --color-positive: #2f6b41;
+  --color-positive-bg: #e9f2eb;
+  --color-positive-border: #cfe2d4;
+  --color-warning: #8a6420;
+  --color-warning-bar: #d6a23e;
+  --color-warning-bg: #f5ecd9;
+  --color-warning-border: #e6d6b3;
+  --color-danger: #a4452f;
+  --color-brand-mark: #7fd0d8;
+  --color-brand-mark-bg: #10302f;
+
+  /* Accent — references runtime CSS vars (set per-palette on :root) */
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-tint2: var(--accent-tint2);
+  --color-accent-faint: var(--accent-faint);
+  --color-accent-track: var(--accent-track);
+
+  /* Type families (next/font sets the underlying vars) */
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Accent palettes (DESIGN_SPEC §1). Default = teal. ─────────────────────── */
+:root,
+:root[data-accent="teal"] {
+  --accent: #17545e;
+  --accent-dark: #11444c;
+  --accent-tint: #e3f0f0;
+  --accent-tint2: #f0f6f6;
+  --accent-faint: #f6faf9;
+  --accent-track: #eef2f2;
+}
+:root[data-accent="indigo"] {
+  --accent: #3a3f8f;
+  --accent-dark: #2c3070;
+  --accent-tint: #e9eaf4;
+  --accent-tint2: #f1f2f9;
+  --accent-faint: #f6f7fb;
+  --accent-track: #eef0f7;
+}
+:root[data-accent="forest"] {
+  --accent: #2f6b41;
+  --accent-dark: #245232;
+  --accent-tint: #e7f1ea;
+  --accent-tint2: #f1f7f3;
+  --accent-faint: #f6faf7;
+  --accent-track: #edf4ef;
+}
+:root[data-accent="oxblood"] {
+  --accent: #8a3b3b;
+  --accent-dark: #6f2f2f;
+  --accent-tint: #f4e7e7;
+  --accent-tint2: #f9f1f1;
+  --accent-faint: #fbf6f6;
+  --accent-track: #f5eded;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+}
+html, body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Pulsing status dot (DESIGN_SPEC §3) */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
+.animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Thin warm scrollbar */
+* { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
