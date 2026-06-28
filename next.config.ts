@@ -30,11 +30,11 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'wasm-unsafe-eval'",
+              "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self'",
-              "connect-src 'self' https://*.stripe.com https://*.anthropic.com https://*.resend.com",
+              "connect-src 'self' https://*.stripe.com https://*.anthropic.com https://*.resend.com https://*.neon.tech",
               "frame-src 'self' https://*.stripe.com",
               "base-uri 'self'",
               "form-action 'self'",
