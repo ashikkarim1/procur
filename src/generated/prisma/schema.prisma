@@ -4,8 +4,10 @@
 // Types mirror contracts/types.ts — see src/contracts/types.ts (imported, not redefined).
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  // native = local (macOS); rhel-openssl-3.0.x = Vercel's Linux runtime (Node 20+).
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
