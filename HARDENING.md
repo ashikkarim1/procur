@@ -12,13 +12,24 @@
 
 **Status**: All headers are now sent on every response.
 
-### Global Auth Middleware (src/middleware.ts)
-- [x] Enforces authentication on all `/api/*` routes
-- [x] Blocks unauthenticated API access (returns 401)
-- [x] Allows public routes (/, /copilot/*)
-- [x] Allows webhook routes (Stripe uses signature verification)
+### Global Auth Middleware — REMOVED (was broken)
+A `src/middleware.ts` was added that redirected workspace routes to `/login`
+and 401'd API routes when no `procur_actor` cookie was present. This BROKE
+production because:
+- `/login` does not exist
+- nothing sets the `procur_actor` cookie (there is no login flow)
+- `auth.ts` is Phase 1 dev auth with a default-actor fallback by design
 
-**Status**: Global auth enforcement is active. Test: `curl -I http://localhost:3000/api/org/members` returns 401.
+It bricked every workspace route and browser API call in production. The
+middleware has been **removed**. Do not re-add route-level auth enforcement
+until a real login flow + session exists (see "Auth System Phase 2" below).
+
+**Real, still-active security:** security headers (next.config.ts) and
+per-query orgId data isolation. These do not depend on the middleware.
+
+> ⚠️ Current reality: with no login, the app resolves every request to the
+> default actor (`m_falcon_owner`). It effectively runs as a SINGLE tenant.
+> True multi-tenant isolation is only enforced once real auth sets the actor.
 
 ### Data Isolation Fixes
 - [x] Vendor account queries filtered by orgId
