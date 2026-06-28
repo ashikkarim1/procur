@@ -29,14 +29,14 @@ export function CommandRail({ user }: { user: RailUser }) {
 
   return (
     <nav className="flex h-screen w-[236px] shrink-0 flex-col bg-rail-bg text-rail-text">
-      {/* Brand block */}
-      <div className="flex items-center gap-2.5 border-b border-rail-border px-5 py-5">
+      {/* Brand block — links home */}
+      <Link href="/" className="flex items-center gap-2.5 border-b border-rail-border px-5 py-5 transition hover:bg-rail-hover">
         <div className="grid h-[26px] w-[26px] place-items-center rounded-[7px] bg-accent font-mono text-[13px] font-semibold text-white">P</div>
         <div className="leading-tight">
           <div className="font-sans text-[14px] font-semibold text-rail-text-active">PROCURE·AI</div>
           <div className="font-mono text-[9px] tracking-[0.18em] text-rail-text-dim">PROCUREMENT TERMINAL</div>
         </div>
-      </div>
+      </Link>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <RailSection label="Workspace" />
